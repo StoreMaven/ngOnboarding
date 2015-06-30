@@ -1,7 +1,24 @@
 (function() {
   var app;
 
-  app = angular.module("ngOnboarding", []);
+  app = angular.module("ngOnboarding", ['ngOnboarding.html']);
+
+
+  angular.module("ngOnboarding.html", []).run(["$templateCache", function($templateCache) {
+    $templateCache.put("ngOnboarding.html",
+      "<div class='onboarding-container' ng-show='enabled'>\n" +
+      "<div class='{{overlayClass}}' ng-style='{opacity: overlayOpacity}', ng-show='overlay'></div>\n" +
+      "<div class='{{popoverClass}} {{positionClass}}' ng-style=\"{width: width, height: height, left: left, top: top, right: right, bottom: bottom}\">\n" + 
+      "<div class='{{arrowClass}}'></div>\n    <h3 class='{{titleClass}}' ng-show='title' ng-bind='title'></h3>\n" +
+      "<a href='' ng-click='close()' class='{{closeButtonClass}}' ng-bind-html='closeButtonText'></a>\n    <div class='{{contentClass}}'>\n" +
+      "<p ng-bind-html='description'></p>\n    </div>\n    <div class='{{buttonContainerClass}}' ng-show='showButtons'>\n" +
+      "<span ng-show='showStepInfo' class='{{stepClass}}'>{{actualStepText}} {{index + 1}} {{totalStepText}} {{stepCount}}</span>\n" +
+      "<a href='' ng-click='previous()' ng-show='showPreviousButton' class='{{buttonClass}}' ng-bind-html='previousButtonText'></a>\n" + 
+      "<a href='' ng-click='next()' ng-show='showNextButton' class='{{buttonClass}}' ng-bind-html='nextButtonText'></a>\n" +
+      "<a href='' ng-click='close()' ng-show='showDoneButton && lastStep' class='{{buttonClass}}' ng-bind-html='doneButtonText'></a>\n" +
+      "</div>\n  </div>\n</div>"
+      "");
+  }]);
 
   app.provider("ngOnboardingDefaults", function() {
     return {
@@ -47,7 +64,7 @@
   });
 
   app.directive('onboardingPopover', [
-    'ngOnboardingDefaults', '$sce', '$timeout', function(ngOnboardingDefaults, $sce, $timeout) {
+    'ngOnboardingDefaults', '$sce', '$timeout', '$rootScope', function(ngOnboardingDefaults, $sce, $timeout, $rootScope ) {
       return {
         restrict: 'E',
         scope: {
@@ -58,16 +75,23 @@
         },
         replace: true,
         link: function(scope, element, attrs) {
+          console.log('onboarding::link', scope );
+
           var attributesToClear, curStep, setupOverlay, setupPositioning;
           curStep = null;
           attributesToClear = ['title', 'top', 'right', 'bottom', 'left', 'width', 'height', 'position'];
+          scope.stepCount = scope.steps.length;
           scope.next = function() {
+            if( curStep.onNextCallback ){
+              curStep.onNextCallback();
+            }
             return scope.index = scope.index + 1;
           };
           scope.previous = function() {
             return scope.index = scope.index - 1;
           };
           scope.close = function() {
+            console.log('onboarding::close', scope, scope.onFinishCallback );
             scope.enabled = false;
             setupOverlay(false);
             if (scope.onFinishCallback) {
@@ -75,6 +99,10 @@
             }
           };
           scope.$watch('index', function(newVal, oldVal) {
+            console.log('onboarding::watch index', newVal, oldVal);
+            if( !scope.steps.length ){
+              return;
+            }
             var attr, k, v, _i, _len;
             if (typeof newVal === 'undefined') {
               scope.enabled = false;
@@ -86,6 +114,7 @@
             scope.showNextButton = scope.index + 1 < scope.steps.length;
             scope.showPreviousButton = scope.index > 0;
             scope.stepCount = scope.steps.length;
+
             for (_i = 0, _len = attributesToClear.length; _i < _len; _i++) {
               attr = attributesToClear[_i];
               scope[attr] = null;
@@ -107,10 +136,30 @@
             scope.closeButtonText = $sce.trustAsHtml(scope.closeButtonText);
             scope.actualStepText = $sce.trustAsHtml(scope.actualStepText);
             scope.totalStepText = $sce.trustAsHtml(scope.totalStepText);
-            setupOverlay();
-            return setupPositioning();
+
+
+            //check if attachTo element is already exists on page
+            var maxChecks=10, checkCounter=0, attachTo = curStep['attachTo'], checkForElement = function(){
+              console.log('onboarding::watch index.checkForElement', curStep, curStep.waitForElement, $(attachTo).offset(), $(attachTo).outerWidth() );
+              checkCounter++;
+              if( !$(attachTo).length && curStep.waitForElement){
+                if( checkCounter >= maxChecks ){
+                  return;
+                }
+                $timeout( function(){
+                  checkForElement();
+                }, 1000 );
+              }else{
+                setupOverlay();
+                setupPositioning();
+              }
+            };
+
+            checkForElement();
+
           });
           setupOverlay = function(showOverlay) {
+            console.log('onboarding::setupOverlay', showOverlay );
             if (showOverlay == null) {
               showOverlay = true;
             }
@@ -125,6 +174,10 @@
             var attachTo, bottom, left, right, top, xMargin, yMargin;
             attachTo = curStep['attachTo'];
             scope.position = curStep['position'];
+
+            console.log('onboarding::setupPositioning', attachTo, curStep, $(attachTo).offset(),  $(attachTo).outerWidth() );
+
+            //console.log('onboarding::setupPositioning.actualSetUp', $(attachTo).offset(), $(attachTo).outerWidth() );
             xMargin = 15;
             yMargin = 15;
             if (attachTo) {
@@ -180,8 +233,16 @@
           if (scope.steps.length && !scope.index) {
             return scope.index = 0;
           }
+
+          $rootScope.$on('onboarding.next', function( event, data ) {
+              console.log('onboarding.next event accepted', data );
+              scope.next();
+          });
+
         },
+        templateUrl: 'ngOnboarding.html'
         template: "<div class='onboarding-container' ng-show='enabled'>\n  <div class='{{overlayClass}}' ng-style='{opacity: overlayOpacity}', ng-show='overlay'></div>\n  <div class='{{popoverClass}} {{positionClass}}' ng-style=\"{width: width, height: height, left: left, top: top, right: right, bottom: bottom}\">\n    <div class='{{arrowClass}}'></div>\n    <h3 class='{{titleClass}}' ng-show='title' ng-bind='title'></h3>\n    <a href='' ng-click='close()' class='{{closeButtonClass}}' ng-bind-html='closeButtonText'></a>\n    <div class='{{contentClass}}'>\n      <p ng-bind-html='description'></p>\n    </div>\n    <div class='{{buttonContainerClass}}' ng-show='showButtons'>\n      <span ng-show='showStepInfo' class='{{stepClass}}'>{{actualStepText}} {{index + 1}} {{totalStepText}} {{stepCount}}</span>\n      <a href='' ng-click='previous()' ng-show='showPreviousButton' class='{{buttonClass}}' ng-bind-html='previousButtonText'></a>\n      <a href='' ng-click='next()' ng-show='showNextButton' class='{{buttonClass}}' ng-bind-html='nextButtonText'></a>\n      <a href='' ng-click='close()' ng-show='showDoneButton && lastStep' class='{{buttonClass}}' ng-bind-html='doneButtonText'></a>\n    </div>\n  </div>\n</div>"
+
       };
     }
   ]);
