@@ -12,7 +12,7 @@
       "<div class='{{arrowClass}}'></div>\n    <h3 class='{{titleClass}}' ng-show='title' ng-bind='title'></h3>\n" +
       "<a href='' ng-click='close()' class='{{closeButtonClass}}' ng-bind-html='closeButtonText'></a>\n    <div class='{{contentClass}}'>\n" +
       "<p ng-bind-html='description'></p>\n    </div>\n    <div class='{{buttonContainerClass}}' ng-show='showButtons'>\n" +
-      "<span ng-show='showStepInfo' class='{{stepClass}}'>{{actualStepText}} {{index + 1}} {{totalStepText}} {{stepCount}}</span>\n" +
+      "<span ng-show='showStepInfo' class='{{stepClass}}'>{{actualStepText}} {{visibleStepCounter}} {{totalStepText}} {{stepCount}}</span>\n" +
       "<a href='' ng-click='previous()' ng-show='showPreviousButton && showControlButtons' class='{{buttonClass}}' ng-bind-html='previousButtonText'></a>\n" + 
       "<a href='' ng-click='next()' ng-show='showNextButton && showControlButtons' class='{{buttonClass}}' ng-bind-html='nextButtonText'></a>\n" +
       "<a href='' ng-click='close()' ng-show='showDoneButton && lastStep && showControlButtons' class='{{buttonClass}}' ng-bind-html='doneButtonText'></a>\n" +
@@ -147,6 +147,8 @@
             scope.actualStepText = $sce.trustAsHtml(scope.actualStepText);
             scope.totalStepText = $sce.trustAsHtml(scope.totalStepText);
 
+            scope.visibleStepCounter = scope.visibleStepCounter;
+
             scope.showStepButton  = curStep.nextButtonText && true;
             scope.stepButtonClass  = curStep.stepButtonClass;
             scope.stepButtonText  = curStep.nextButtonText;
@@ -190,7 +192,7 @@
             $('.onboarding-focus').removeClass('onboarding-focus');
             if (showOverlay) {
               if (curStep['attachTo'] && scope.overlay) {
-                console.log('onboarding::setupOverlay', showOverlay, scope.isEnabled );
+                console.log('onboarding::setupOverlay', showOverlay, scope.isEnabled, $(curStep['attachTo']) );
                 return $(curStep['attachTo']).addClass('onboarding-focus');
               }
             }
