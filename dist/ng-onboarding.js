@@ -168,6 +168,23 @@
                   checkForElement();
                 }, 1000 );
               }else{
+
+                if( $(attachTo).length && scope.waitForElement ){
+                  var y = $(attachTo).position().top, 
+                  windowHeight = $(window).height(), 
+                  windowScroolY = $(window).scrollTop();
+
+                  if( ( y - windowScroolY > windowHeight / 1.5  ) || ( y - windowScroolY < 5 ) ){
+                    console.log('onboarding::checkForElement', 'scroll', y, windowScroolY, windowHeight, windowHeight / 1.5 );
+                    //$(attachTo).animate({ scrollTop: windowHeight / 2 });
+                    $(attachTo)[0].scrollIntoView(false, {behavior: "smooth"})
+                    $timeout( function(){
+                      checkForElement();
+                    }, 1000 );
+                    return;
+                  }
+                }
+
                 scope.waitForElement = false;
                 $timeout( function(){
                   setupOverlay();
