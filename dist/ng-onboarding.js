@@ -174,14 +174,16 @@
                   windowHeight = $(window).height(), 
                   windowScroolY = $(window).scrollTop();
 
-                  if( ( y - windowScroolY > windowHeight / 1.5  ) || ( y - windowScroolY < 5 ) ){
-                    console.log('onboarding::checkForElement', 'scroll', y, windowScroolY, windowHeight, windowHeight / 1.5 );
-                    //$(attachTo).animate({ scrollTop: windowHeight / 2 });
-                    $(attachTo)[0].scrollIntoView(false, {behavior: "smooth"})
-                    $timeout( function(){
-                      checkForElement();
-                    }, 1000 );
-                    return;
+                  if( ( y - windowScroolY > windowHeight / 1.5  ) || ( y - windowScroolY < 0 ) ){
+                    console.log('onboarding::checkForElement', 'scroll', checkCounter, y, windowScroolY, windowHeight, windowHeight / 1.5 );
+                    if( checkCounter < 4 ){
+                      //$(attachTo).animate({ scrollTop: windowHeight / 2 });
+                      $(attachTo)[0].scrollIntoView(false, {behavior: "smooth"})
+                      $timeout( function(){
+                        checkForElement();
+                      }, 1000 );
+                      return;
+                    }
                   }
                 }
 
